@@ -73,11 +73,17 @@ int main(int argc, char **argv) {
     Qapp app(argc, argv);
 
     QWidget window;
-    window.resize(800, 600);
     window.setWindowTitle("Client");
+    window.setMinimumSize(800, 600);
+    window.resize(800, 600);
     window.show();
 
-    QVBoxLayout *server_box = new QVBoxLayout(&window);
+    QWidget *container = new QWidget(&window);
+    container -> setContentsMargins(270, 100, 200, 100);
+    container -> setFixedSize(400, 400);
+    container -> show();
+
+    QVBoxLayout *server_box = new QVBoxLayout(container);
 
     QLabel *status          = new QLabel(
         Qapp::translate("","Server Status"));
@@ -114,6 +120,11 @@ int main(int argc, char **argv) {
                   [&parameters]() {reset_server(parameters); }
     );
 
+    QFont label_font = status -> font();
+    label_font.setPointSize(21);
+    
+    status -> setFont(label_font);
+
     server_box -> addWidget(status);
     server_box -> addWidget(port_label);
     server_box -> addWidget(port);
@@ -121,7 +132,18 @@ int main(int argc, char **argv) {
     server_box -> addWidget(disconnect);
     server_box -> addWidget(reset);
 
-    window.setLayout(server_box);
+    server_box -> setAlignment(Qt::AlignCenter);
+    server_box -> setContentsMargins(20, 20, 20, 20);
+    server_box -> setSizeConstraints(QLayout::SetFixedSize, QLayout::SetFixedSize);
+
+    status -> setAlignment(Qt::AlignHCenter);
+    status -> setMargin(20);
+
+    port_label -> setAlignment(Qt::AlignHCenter);
+    port_label -> setMargin(10);
+
+
+    window.resize(800, 600);
 
     return app.exec();
 }
