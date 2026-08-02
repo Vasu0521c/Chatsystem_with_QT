@@ -1,3 +1,4 @@
+#include "qframe.h"
 #include <QApplication>
 #include <QtWidgets>
 #include <unistd.h>
@@ -74,61 +75,57 @@ int main(int argc, char **argv) {
 
     qapp app(argc, argv);
 
-    QWidget window;
-    QWidget *placeholder1 = new QWidget();
-    QWidget *placeholder2 = new QWidget();
+    QMainWindow window;
+
+    QWidget *center = new QWidget();
+
+    QFrame *options   = new QFrame();
+    QFrame *msg_frame = new QFrame();
 
     QScrollArea *message_area = new QScrollArea();
+
+    QSplitter *splitter = new QSplitter(Qt::Horizontal);
 
     QLabel *status     = new QLabel("Client Status");
     QLabel *ip_label   = new QLabel("IP address");
     QLabel *port_label = new QLabel("Port Number");
 
-    QSplitter *horizontal_split = new QSplitter();
-    QSplitter *vertical_split   = new QSplitter();
-
     QLineEdit *ip_address  = new QLineEdit();
     QLineEdit *port_number = new QLineEdit();
     QLineEdit *message     = new QLineEdit();
 
-    QVBoxLayout *connection_layout = new QVBoxLayout();
-    QHBoxLayout *message_layout    = new QHBoxLayout();
+    QVBoxLayout *connection_layout = new QVBoxLayout(options);
+    QVBoxLayout *message_layout    = new QVBoxLayout(msg_frame);
+
+    QHBoxLayout *msg_area = new QHBoxLayout();
+    QVBoxLayout *messages = new QVBoxLayout();
     
-    button *connect_    = new button("connect to server");
-    button *disconnect_ = new button("disconnect");
-    button *send_       = new button("send");
+    button *connect_      = new button("connect to server");
+    button *disconnect_   = new button("disconnect");
+    button *send_         = new button("send");
 
     window.setWindowTitle("Client");
     window.setMinimumSize(900, 900);
     window.resize(901,901);
 
-    horizontal_split -> setOrientation(Qt::Horizontal);
-    horizontal_split -> setSizes({400, 400});
-    horizontal_split -> setParent(&window);
-    horizontal_split -> addWidget(placeholder1);
-    horizontal_split -> addWidget(vertical_split);
-    
-    vertical_split   -> setOrientation(Qt::Vertical);
-    vertical_split   -> addWidget(message_area);
-    vertical_split   -> addWidget(placeholder2);
+    window.setCentralWidget(center);
 
+    splitter -> setParent(center);
+    splitter -> addWidget(options);
+    splitter -> addWidget(msg_frame);
+    
+    options -> setFrameShape(QFrame::StyledPanel);
+    options -> setFrameShadow(QFrame::Raised);
+
+    msg_frame -> setFrameShape(QFrame::StyledPanel);
+    msg_frame -> setFrameShadow(QFrame::Raised);
+
+    message_layout -> addWidget(message_area, 1);
+    message_layout -> addLayout(msg_area);
+    
     ip_address  -> setPlaceholderText("Ex : 133.53.23.6");
     port_number -> setPlaceholderText("Ex : 18394");
 
-    message     -> setMinimumSize(300, 50);
-
-    message     -> setTextMargins(10, 10, 10, 10);
-    message     -> setContentsMargins(10, 10, 10, 10);
-
-    placeholder1      -> setLayout(connection_layout);
-    placeholder1      -> setMinimumSize(400, 400);
-    placeholder1      -> setContentsMargins(10, 10, 10, 10);
-    placeholder1      -> resize(401, 401);
-    placeholder2      -> setLayout(message_layout);
-
-    connection_layout -> setParent(placeholder1);
-    connection_layout -> setSpacing(10);
-    connection_layout -> setContentsMargins(10, 10, 10, 10);
     //connectivity controls
     connection_layout -> addWidget(status);
 
@@ -141,9 +138,10 @@ int main(int argc, char **argv) {
     connection_layout -> addWidget(connect_);
     connection_layout -> addWidget(disconnect_);
 
-    //message actions
-    message_layout    -> addWidget(message);
-    message_layout    -> addWidget(send_);
+
+    // message controls
+    msg_area -> addWidget(message, 1);
+    msg_area -> addWidget(send_);
 
     struct data *parameters    = new struct data;
     parameters -> status_label = status;
