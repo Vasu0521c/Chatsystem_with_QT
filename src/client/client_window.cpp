@@ -1,4 +1,6 @@
+#include <iostream>
 #include "qframe.h"
+#include "qnamespace.h"
 #include "qsizepolicy.h"
 #include <QApplication>
 #include <QtWidgets>
@@ -14,6 +16,7 @@ typedef QPushButton  button;
 struct data {
 
     int           msg_status,
+                  msg_count,
                   server_fd;
 
     QLabel       *status_label;
@@ -24,9 +27,14 @@ struct data {
                  *port;
 };
 
+int connect_server(struct data *param);
+int disconnect_server(struct data *param);
+int send_message(struct data *param);
+void display_message(struct data *param, char *message);
+
 int connect_server(struct data *param) {
 
-    if (param -> server_fd >= 0) {
+    if (param -> server_fd > 0) {
         param ->  status_label -> setText("Server is already connected");
         return 0;
     }
@@ -34,7 +42,7 @@ int connect_server(struct data *param) {
     std::string temp_str = param -> ip -> text().toStdString();
     char *ip_address     = (char *)temp_str.c_str();
     int port_number      = stoi(param -> port -> text().toStdString());
-    int status = server_connect(ip_address, port_number);
+    int status           = server_connect(ip_address, port_number);
 
     if (status <= 0) {
         param -> status_label -> setText("Connection Failed");
@@ -69,15 +77,32 @@ int send_message(struct data *param) {
     int length    = temp.length();
     char *message = (char *)temp.c_str();
 
-    send_msg(param -> server_fd, message, length - 1);
+    std::cout << message << std::endl;
+    std::cout << "hello" << std::endl;
+
+    send_msg(param -> server_fd, message, length);
+
+    display_message(param, message);
     param -> msg -> setText("");
 
     return 0;
 }
 
-void display_message(struct data *param) {
+void display_message(struct data *param, char *message) {
+
+    QHBoxLayout *box = new QHBoxLayout();
+    QLabel *msg      = new QLabel(message);
 
     int sts = param -> msg_status;
+
+    if (sts == 1) {
+        box -> addWidget(msg, 0, Qt::AlignLeft);
+    } else {
+        box -> addWidget(msg, 0, Qt::AlignRight);
+    }
+
+    param -> vbox -> addLayout(box, 0);
+    param -> msg_count += 1;
 
     return;
 }
@@ -132,11 +157,13 @@ int main(int argc, char **argv) {
     options_frame -> setFrameShape(QFrame::StyledPanel);
     options_frame -> setFrameShadow(QFrame::Raised);
 
+    msgs_holder_box -> setSpacing(10);
+
     msg_frame  -> setFrameShape(QFrame::StyledPanel);
     msg_frame  -> setFrameShadow(QFrame::Raised);
     msg_frame  -> setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    msg_layout -> addWidget(scroll_area, 1);
+    msg_layout -> addWidget(scroll_area);
     msg_layout -> addLayout(msg_field_area,1);
 
     ip_address  -> setPlaceholderText("Ex : 133.53.23.6");
