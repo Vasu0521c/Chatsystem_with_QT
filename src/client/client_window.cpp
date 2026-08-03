@@ -1,4 +1,5 @@
 #include "qframe.h"
+#include "qsizepolicy.h"
 #include <QApplication>
 #include <QtWidgets>
 #include <unistd.h>
@@ -12,11 +13,15 @@ typedef QPushButton  button;
 
 struct data {
 
-    int       server_fd;
-    QLabel    *status_label;
-    QLineEdit *ip,
-              *msg,
-              *port;
+    int           msg_status,
+                  server_fd;
+
+    QLabel       *status_label;
+    QVBoxLayout  *vbox;
+
+    QLineEdit    *ip,
+                 *msg,
+                 *port;
 };
 
 int connect_server(struct data *param) {
@@ -58,7 +63,6 @@ int send_message(struct data *param) {
     std::string temp = param -> msg -> text().toStdString();
 
     if (!temp.length()) {
-
         return -1;
     }
 
@@ -71,18 +75,25 @@ int send_message(struct data *param) {
     return 0;
 }
 
+void display_message(struct data *param) {
+
+    int sts = param -> msg_status;
+
+    return;
+}
+
 int main(int argc, char **argv) {
 
     qapp app(argc, argv);
 
     QMainWindow window;
 
-    QWidget *center = new QWidget();
+    QWidget *center_widget = new QWidget();
 
-    QFrame *options   = new QFrame();
-    QFrame *msg_frame = new QFrame();
+    QFrame *options_frame  = new QFrame();
+    QFrame *msg_frame      = new QFrame();
 
-    QScrollArea *message_area = new QScrollArea();
+    QScrollArea *scroll_area = new QScrollArea();
 
     QSplitter *splitter = new QSplitter(Qt::Horizontal);
 
@@ -94,11 +105,12 @@ int main(int argc, char **argv) {
     QLineEdit *port_number = new QLineEdit();
     QLineEdit *message     = new QLineEdit();
 
-    QVBoxLayout *connection_layout = new QVBoxLayout(options);
-    QVBoxLayout *message_layout    = new QVBoxLayout(msg_frame);
+    QHBoxLayout *main_layout    = new QHBoxLayout(center_widget);
+    QVBoxLayout *options_layout = new QVBoxLayout(options_frame);
+    QVBoxLayout *msg_layout     = new QVBoxLayout(msg_frame);
 
-    QHBoxLayout *msg_area = new QHBoxLayout();
-    QVBoxLayout *messages = new QVBoxLayout();
+    QVBoxLayout *msgs_holder_box = new QVBoxLayout(scroll_area);
+    QHBoxLayout *msg_field_area = new QHBoxLayout();
     
     button *connect_      = new button("connect to server");
     button *disconnect_   = new button("disconnect");
@@ -108,46 +120,56 @@ int main(int argc, char **argv) {
     window.setMinimumSize(900, 900);
     window.resize(901,901);
 
-    window.setCentralWidget(center);
+    window.setCentralWidget(center_widget);
 
-    splitter -> setParent(center);
-    splitter -> addWidget(options);
+    main_layout -> addWidget(splitter);
+
+    splitter -> setChildrenCollapsible(0);
+    splitter -> setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    splitter -> addWidget(options_frame);
     splitter -> addWidget(msg_frame);
     
-    options -> setFrameShape(QFrame::StyledPanel);
-    options -> setFrameShadow(QFrame::Raised);
+    options_frame -> setFrameShape(QFrame::StyledPanel);
+    options_frame -> setFrameShadow(QFrame::Raised);
 
-    msg_frame -> setFrameShape(QFrame::StyledPanel);
-    msg_frame -> setFrameShadow(QFrame::Raised);
+    msg_frame  -> setFrameShape(QFrame::StyledPanel);
+    msg_frame  -> setFrameShadow(QFrame::Raised);
+    msg_frame  -> setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    message_layout -> addWidget(message_area, 1);
-    message_layout -> addLayout(msg_area);
-    
+    msg_layout -> addWidget(scroll_area, 1);
+    msg_layout -> addLayout(msg_field_area,1);
+
     ip_address  -> setPlaceholderText("Ex : 133.53.23.6");
     port_number -> setPlaceholderText("Ex : 18394");
 
     //connectivity controls
-    connection_layout -> addWidget(status);
+    options_layout -> setAlignment(Qt::AlignCenter);
+    options_layout -> addWidget(status);
 
-    connection_layout -> addWidget(ip_label);
-    connection_layout -> addWidget(ip_address);
+    options_layout -> addWidget(ip_label);
+    options_layout -> addWidget(ip_address);
 
-    connection_layout -> addWidget(port_label);
-    connection_layout -> addWidget(port_number);
+    options_layout -> addWidget(port_label);
+    options_layout -> addWidget(port_number);
 
-    connection_layout -> addWidget(connect_);
-    connection_layout -> addWidget(disconnect_);
+    options_layout -> addWidget(connect_);
+    options_layout -> addWidget(disconnect_);
 
+
+    for (int i = 0; i < 7; i++) {
+        options_layout -> setStretch(i, 0);
+    }
 
     // message controls
-    msg_area -> addWidget(message, 1);
-    msg_area -> addWidget(send_);
+    msg_field_area -> addWidget(message, 1);
+    msg_field_area -> addWidget(send_);
 
     struct data *parameters    = new struct data;
     parameters -> status_label = status;
     parameters -> ip           = ip_address;
     parameters -> port         = port_number;
     parameters -> msg          = message;
+    parameters -> vbox         = msgs_holder_box;
 
     qapp::connect(connect_, &button::clicked,
                   [&parameters]() { connect_server(parameters); }
