@@ -5,6 +5,7 @@
 #include <QApplication>
 #include <QtWidgets>
 #include <unistd.h>
+#include <QSocketNotifier>
 
 extern "C" {
     #include "client.h"
@@ -15,21 +16,25 @@ typedef QPushButton  button;
 
 struct data {
 
-    int           msg_status,
-                  msg_count,
-                  server_fd;
+    int              msg_status,
+                     msg_count,
+                     server_fd;
 
-    QLabel       *status_label;
-    QVBoxLayout  *vbox;
+    QSocketNotifier *notifier;
 
-    QLineEdit    *ip,
-                 *msg,
-                 *port;
+    QLabel          *status_label;
+    QVBoxLayout     *vbox;
+
+    QLineEdit       *ip,
+                    *msg,
+                    *port;
 };
 
 int connect_server(struct data *param);
 int disconnect_server(struct data *param);
 int send_message(struct data *param);
+
+void receive_message(struct data *param);
 void display_message(struct data *param, char *message);
 
 int connect_server(struct data *param) {
@@ -51,6 +56,7 @@ int connect_server(struct data *param) {
 
     param -> status_label -> setText("Server Connected");
     param -> server_fd = status;
+    receive_message(param);
     return 0;
 }
 
@@ -62,6 +68,11 @@ int disconnect_server(struct data *param) {
     }
     close(param -> server_fd);
     param -> server_fd = 0;
+
+    if (param->notifier) {
+      delete param -> notifier;
+      param -> notifier = NULL;
+    }
 
     return 0;
 }
@@ -77,15 +88,31 @@ int send_message(struct data *param) {
     int length    = temp.length();
     char *message = (char *)temp.c_str();
 
-    std::cout << message << std::endl;
-    std::cout << "hello" << std::endl;
-
     send_msg(param -> server_fd, message, length);
+    param -> msg_status = 0;
 
     display_message(param, message);
     param -> msg -> setText("");
 
     return 0;
+}
+
+void receive_message(struct data *param) {
+
+    param -> notifier = new QSocketNotifier(param -> server_fd, QSocketNotifier::Read);
+
+    QObject::connect(param->notifier, &QSocketNotifier::activated,
+                     [param]() {
+
+                         char *msg = recv_msg(param -> server_fd);
+
+                         if (strlen(msg) <= 0) {
+                             return;
+                         }
+
+                         param -> msg_status = 1;
+                         display_message(param, msg);
+                     });
 }
 
 void display_message(struct data *param, char *message) {
@@ -197,6 +224,7 @@ int main(int argc, char **argv) {
     parameters -> port         = port_number;
     parameters -> msg          = message;
     parameters -> vbox         = msgs_holder_box;
+    parameters -> notifier     = nullptr;
 
     qapp::connect(connect_, &button::clicked,
                   [&parameters]() { connect_server(parameters); }
